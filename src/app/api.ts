@@ -21,6 +21,37 @@ export const api = {
     const res = await fetch(`${API_BASE}/services`);
     return res.json();
   },
+  createService: async (token: string, service: { name: string; description: string; duration: number; price: number; category: string }) => {
+    const res = await fetch(`${API_BASE}/services`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(service),
+    });
+    return res.json();
+  },
+  updateService: async (token: string, id: number, service: { name: string; description: string; duration: number; price: number; category: string }) => {
+    const res = await fetch(`${API_BASE}/services/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(service),
+    });
+    return res.json();
+  },
+  deleteService: async (token: string, id: number) => {
+    const res = await fetch(`${API_BASE}/services/${id}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.json();
+  },
   getAppointments: async (token: string) => {
     const res = await fetch(`${API_BASE}/appointments`, {
       headers: { Authorization: `Bearer ${token}` },

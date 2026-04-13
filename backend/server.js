@@ -34,8 +34,12 @@ db.serialize(() => {
     name TEXT,
     description TEXT,
     duration INTEGER,
-    price REAL
-  )`);
+    price REAL,
+    category TEXT
+  `);
+  db.run(`ALTER TABLE services ADD COLUMN category TEXT`, [], (err) => {
+    // Ignore duplicate column if it already exists
+  });
 
   db.run(`CREATE TABLE IF NOT EXISTS appointments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -52,11 +56,11 @@ db.serialize(() => {
 
   // Insert sample data
   const hashed = bcrypt.hashSync('password', 10);
-  db.run(`INSERT OR IGNORE INTO services (name, description, duration, price) VALUES 
-    ('Oil Change', 'Complete oil change service', 60, 50.00),
-    ('Brake Service', 'Brake inspection and replacement', 90, 150.00),
-    ('Tire Rotation', 'Rotate tires for even wear', 30, 25.00),
-    ('Engine Diagnostic', 'Check engine performance', 45, 75.00)
+  db.run(`INSERT OR IGNORE INTO services (name, description, duration, price, category) VALUES 
+    ('Oil Change', 'Complete oil change service', 60, 50.00, 'Maintenance'),
+    ('Brake Service', 'Brake inspection and replacement', 90, 150.00, 'Repair'),
+    ('Tire Rotation', 'Rotate tires for even wear', 30, 25.00, 'Maintenance'),
+    ('Engine Diagnostic', 'Check engine performance', 45, 75.00, 'Diagnostic')
   `);
 
   db.run(`INSERT OR IGNORE INTO users (name, email, password, role) VALUES 
@@ -108,10 +112,31 @@ app.get('/api/services', (req, res) => {
 
 app.post('/api/services', authenticate, (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
-  const { name, description, duration, price } = req.body;
-  db.run('INSERT INTO services (name, description, duration, price) VALUES (?, ?, ?, ?)', [name, description, duration, price], function(err) {
+  const { name, description, duration, price, category } = req.body;
+  db.run('INSERT INTO services (name, description, duration, price, category) VALUES (?, ?, ?, ?, ?)', [name, description, duration, price, category], function(err) {
     if (err) return res.status(400).json({ error: err.message });
     res.json({ id: this.lastID });
+  });
+});
+
+app.put('/api/services/:id', authenticate, (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+  const { id } = req.params;
+  const { name, description, duration, price, category } = req.body;
+  db.run('UPDATE services SET name = ?, description = ?, duration = ?, price = ?, category = ? WHERE id = ?', [name, description, duration, price, category, id], function(err) {
+    if (err) return res.status(400).json({ error: err.message });
+    if (this.changes === 0) return res.status(404).json({ error: 'Service not found' });
+    res.json({ id });
+  });
+});
+
+app.delete('/api/services/:id', authenticate, (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+  const { id } = req.params;
+  db.run('DELETE FROM services WHERE id = ?', [id], function(err) {
+    if (err) return res.status(400).json({ error: err.message });
+    if (this.changes === 0) return res.status(404).json({ error: 'Service not found' });
+    res.json({ success: true });
   });
 });
 
