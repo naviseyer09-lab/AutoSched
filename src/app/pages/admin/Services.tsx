@@ -187,8 +187,9 @@ export default function AdminServices() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Service Name</label>
+                <label htmlFor="service-name" className="block text-sm font-medium text-gray-700 mb-2">Service Name</label>
                 <input
+                  id="service-name"
                   name="name"
                   value={formData.name}
                   onChange={handleFormChange}
@@ -196,8 +197,9 @@ export default function AdminServices() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <label htmlFor="service-category" className="block text-sm font-medium text-gray-700 mb-2">Category</label>
                 <select
+                  id="service-category"
                   name="category"
                   value={formData.category}
                   onChange={handleFormChange}
@@ -211,8 +213,9 @@ export default function AdminServices() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Duration (minutes)</label>
+                <label htmlFor="service-duration" className="block text-sm font-medium text-gray-700 mb-2">Duration (minutes)</label>
                 <input
+                  id="service-duration"
                   name="duration"
                   type="number"
                   min={10}
@@ -222,8 +225,9 @@ export default function AdminServices() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Price</label>
+                <label htmlFor="service-price" className="block text-sm font-medium text-gray-700 mb-2">Price</label>
                 <input
+                  id="service-price"
                   name="price"
                   type="number"
                   min={0}
@@ -234,8 +238,9 @@ export default function AdminServices() {
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                <label htmlFor="service-description" className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                 <textarea
+                  id="service-description"
                   name="description"
                   value={formData.description}
                   onChange={handleFormChange}

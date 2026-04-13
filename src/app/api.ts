@@ -1,6 +1,7 @@
 const API_BASE = 'http://localhost:5000/api';
 
 export const api = {
+  // Auth
   login: async (email: string, password: string) => {
     const res = await fetch(`${API_BASE}/login`, {
       method: 'POST',
@@ -17,6 +18,27 @@ export const api = {
     });
     return res.json();
   },
+
+  // Profile
+  getProfile: async (token: string) => {
+    const res = await fetch(`${API_BASE}/profile`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.json();
+  },
+  updateProfile: async (token: string, name: string, email: string) => {
+    const res = await fetch(`${API_BASE}/profile`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ name, email }),
+    });
+    return res.json();
+  },
+
+  // Services
   getServices: async () => {
     const res = await fetch(`${API_BASE}/services`);
     return res.json();
@@ -52,6 +74,8 @@ export const api = {
     });
     return res.json();
   },
+
+  // Appointments
   getAppointments: async (token: string) => {
     const res = await fetch(`${API_BASE}/appointments`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -69,5 +93,69 @@ export const api = {
     });
     return res.json();
   },
-  // Add more as needed
+  updateAppointment: async (token: string, id: number, status: string) => {
+    const res = await fetch(`${API_BASE}/appointments/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ status }),
+    });
+    return res.json();
+  },
+  cancelAppointment: async (token: string, id: number) => {
+    const res = await fetch(`${API_BASE}/appointments/${id}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.json();
+  },
+
+  // Users
+  getUsers: async (token: string) => {
+    const res = await fetch(`${API_BASE}/users`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.json();
+  },
+  createUser: async (token: string, user: { name: string; email: string; password: string; role: string }) => {
+    const res = await fetch(`${API_BASE}/users`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(user),
+    });
+    return res.json();
+  },
+  updateUser: async (token: string, id: number, user: { name: string; email: string; role: string }) => {
+    const res = await fetch(`${API_BASE}/users/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(user),
+    });
+    return res.json();
+  },
+  deleteUser: async (token: string, id: number) => {
+    const res = await fetch(`${API_BASE}/users/${id}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.json();
+  },
+
+  // Staff
+  getStaff: async () => {
+    const res = await fetch(`${API_BASE}/staff`);
+    return res.json();
+  },
 };

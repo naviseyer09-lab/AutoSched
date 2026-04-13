@@ -1,49 +1,44 @@
+import { useEffect, useState } from "react";
 import { DashboardLayout } from "../../components/DashboardLayout";
-import { Eye, Mail, Phone } from "lucide-react";
+import { Eye, AlertCircle } from "lucide-react";
+import { api } from "../../api";
 
 export default function StaffCustomers() {
-  const customers = [
-    {
-      id: 1,
-      name: "John Doe",
-      email: "john.doe@email.com",
-      phone: "(555) 123-4567",
-      vehicle: "Toyota Camry",
-      plate: "ABC-1234",
-      totalServices: 5,
-      lastService: "February 15, 2026",
-    },
-    {
-      id: 2,
-      name: "Jane Smith",
-      email: "jane.smith@email.com",
-      phone: "(555) 234-5678",
-      vehicle: "Honda Civic",
-      plate: "XYZ-5678",
-      totalServices: 3,
-      lastService: "February 20, 2026",
-    },
-    {
-      id: 3,
-      name: "Mike Johnson",
-      email: "mike.johnson@email.com",
-      phone: "(555) 345-6789",
-      vehicle: "Ford F-150",
-      plate: "DEF-9012",
-      totalServices: 8,
-      lastService: "February 25, 2026",
-    },
-    {
-      id: 4,
-      name: "Sarah Williams",
-      email: "sarah.williams@email.com",
-      phone: "(555) 456-7890",
-      vehicle: "Chevrolet Malibu",
-      plate: "GHI-3456",
-      totalServices: 4,
-      lastService: "February 28, 2026",
-    },
-  ];
+  const [customers, setCustomers] = useState([] as any[]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    loadCustomers();
+  }, []);
+
+  const loadCustomers = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("Please log in");
+      setLoading(false);
+      return;
+    }
+    try {
+      const users = await api.getUsers(token);
+      const customersOnly = Array.isArray(users) ? users.filter(u => (u.role || "").toLowerCase() === "customer") : [];
+      setCustomers(customersOnly);
+    } catch (err) {
+      setError("Failed to load customers");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout role="staff">
+        <div className="p-8">
+          <p className="text-gray-600">Loading customers...</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout role="staff">
@@ -53,45 +48,46 @@ export default function StaffCustomers() {
           <p className="text-gray-600">View customer information and service history</p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          {customers.map((customer) => (
-            <div key={customer.id} className="bg-white rounded-xl shadow-md p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-2xl text-primary mb-1">{customer.name}</h3>
-                  <p className="text-gray-600">
-                    {customer.vehicle} - {customer.plate}
-                  </p>
-                </div>
-                <button className="p-2 text-primary hover:bg-primary hover:text-white rounded-lg transition">
-                  <Eye size={20} />
-                </button>
-              </div>
+        {error && (
+          <div className="mb-6 flex gap-3 bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+            <AlertCircle size={20} className="flex-shrink-0" />
+            <p>{error}</p>
+          </div>
+        )}
 
-              <div className="space-y-3 mb-4">
-                <div className="flex items-center gap-2 text-gray-700">
-                  <Mail size={16} className="text-gray-600" />
-                  <span className="text-sm">{customer.email}</span>
+        {customers.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-md p-12 text-center">
+            <p className="text-gray-600">No customers found</p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-6">
+            {customers.map((customer) => (
+              <div key={customer.id} className="bg-white rounded-xl shadow-md p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-2xl text-primary mb-1">{customer.name}</h3>
+                    <p className="text-gray-600">Customer ID: {customer.id}</p>
+                  </div>
+                  <button className="p-2 text-primary hover:bg-primary hover:text-white rounded-lg transition" title="View Customer Details">
+                    <Eye size={20} />
+                  </button>
                 </div>
-                <div className="flex items-center gap-2 text-gray-700">
-                  <Phone size={16} className="text-gray-600" />
-                  <span className="text-sm">{customer.phone}</span>
-                </div>
-              </div>
 
-              <div className="border-t border-gray-200 pt-4 grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-600">Total Services</p>
-                  <p className="text-xl text-primary">{customer.totalServices}</p>
+                <div className="space-y-3 mb-4">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Email</p>
+                    <p className="text-gray-900">{customer.email}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">Last Service</p>
-                  <p className="text-sm text-gray-900">{customer.lastService}</p>
+
+                <div className="border-t border-gray-200 pt-4">
+                  <p className="text-sm text-gray-600">Status</p>
+                  <p className="text-lg text-green-600 font-medium">Active</p>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

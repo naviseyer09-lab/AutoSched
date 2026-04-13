@@ -1,41 +1,49 @@
+import { useEffect, useState } from "react";
 import { DashboardLayout } from "../../components/DashboardLayout";
-import { Download } from "lucide-react";
+import { Download, AlertCircle } from "lucide-react";
+import { api } from "../../api";
 
 export default function ServiceHistory() {
-  const serviceHistory = [
-    {
-      id: 1,
-      service: "Oil Change",
-      technician: "John Smith",
-      date: "February 15, 2026",
-      notes: "Replaced oil filter. Used synthetic 5W-30 oil.",
-      cost: "$45.00",
-    },
-    {
-      id: 2,
-      service: "Brake Inspection",
-      technician: "Mike Johnson",
-      date: "January 28, 2026",
-      notes: "All brake pads in good condition. No issues found.",
-      cost: "$30.00",
-    },
-    {
-      id: 3,
-      service: "Tire Rotation",
-      technician: "Sarah Williams",
-      date: "January 10, 2026",
-      notes: "Rotated all four tires. Checked tire pressure.",
-      cost: "$35.00",
-    },
-    {
-      id: 4,
-      service: "Engine Diagnostic",
-      technician: "David Brown",
-      date: "December 20, 2025",
-      notes: "Ran full diagnostic. All systems functioning normally.",
-      cost: "$85.00",
-    },
-  ];
+  const [history, setHistory] = useState([] as any[]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    loadServiceHistory();
+  }, []);
+
+  const loadServiceHistory = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("Please log in to view service history");
+      setLoading(false);
+      return;
+    }
+    try {
+      const data = await api.getAppointments(token);
+      const completed = Array.isArray(data) ? data.filter(a => a.status === "completed") : [];
+      setHistory(completed);
+    } catch (err) {
+      setError("Failed to load service history");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownloadReceipt = (appointmentId: string) => {
+    // For now, just show a placeholder - backend can generate PDF later
+    alert(`Receipt for appointment ${appointmentId} would be downloaded here`);
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout role="customer">
+        <div className="p-8">
+          <p className="text-gray-600">Loading service history...</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout role="customer">
@@ -45,44 +53,50 @@ export default function ServiceHistory() {
           <p className="text-gray-600">View your completed service records</p>
         </div>
 
-        <div className="space-y-6">
-          {serviceHistory.map((record) => (
-            <div key={record.id} className="bg-white rounded-xl shadow-md p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-2xl text-primary mb-1">{record.service}</h3>
-                  <p className="text-gray-600">{record.date}</p>
-                </div>
-                <button className="flex items-center gap-2 bg-accent text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition">
-                  <Download size={18} />
-                  Receipt
-                </button>
-              </div>
+        {error && (
+          <div className="mb-6 flex gap-3 bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+            <AlertCircle size={20} className="flex-shrink-0" />
+            <p>{error}</p>
+          </div>
+        )}
 
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <div className="mb-4">
-                    <p className="text-sm text-gray-600 mb-1">Technician</p>
-                    <p className="text-gray-900">{record.technician}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Cost</p>
-                    <p className="text-xl text-primary">{record.cost}</p>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Service Notes</p>
-                  <p className="text-gray-900">{record.notes}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {serviceHistory.length === 0 && (
+        {history.length === 0 ? (
           <div className="bg-white rounded-xl shadow-md p-12 text-center">
-            <p className="text-gray-600 text-lg">No service history available</p>
+            <p className="text-gray-600 text-lg">No service history available yet</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {history.map((record) => (
+              <div key={record.id} className="bg-white rounded-xl shadow-md p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-2xl text-primary mb-1">{record.service_name || "Service"}</h3>
+                    <p className="text-gray-600">{record.date} at {record.time}</p>
+                  </div>
+                  <button
+                    onClick={() => handleDownloadReceipt(record.id)}
+                    className="flex items-center gap-2 bg-accent text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition"
+                  >
+                    <Download size={18} />
+                    Receipt
+                  </button>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Status</p>
+                      <p className="text-gray-900 font-medium">Completed</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Appointment Details</p>
+                    <p className="text-gray-900">ID: {record.id}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

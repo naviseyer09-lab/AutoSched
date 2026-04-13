@@ -1,273 +1,163 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DashboardLayout } from "../../components/DashboardLayout";
-import { User, Car, Lock } from "lucide-react";
+import { Save, AlertCircle, Check } from "lucide-react";
+import { api } from "../../api";
 
 export default function Profile() {
-  const [activeTab, setActiveTab] = useState<"personal" | "vehicle" | "password">("personal");
-
-  const [personalInfo, setPersonalInfo] = useState({
-    fullName: "John Doe",
-    email: "john.doe@email.com",
-    contactNumber: "(555) 123-4567",
+  const [profile, setProfile] = useState({
+    name: "",
+    email: "",
   });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const [vehicleInfo, setVehicleInfo] = useState({
-    vehicleType: "Sedan",
-    plateNumber: "ABC-1234",
-    model: "Toyota Camry",
-    year: "2020",
-  });
+  useEffect(() => {
+    loadProfile();
+  }, []);
 
-  const [passwordInfo, setPasswordInfo] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
-
-  const handlePersonalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPersonalInfo({ ...personalInfo, [e.target.name]: e.target.value });
-  };
-
-  const handleVehicleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setVehicleInfo({ ...vehicleInfo, [e.target.name]: e.target.value });
-  };
-
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPasswordInfo({ ...passwordInfo, [e.target.name]: e.target.value });
-  };
-
-  const handlePersonalSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    alert("Personal information updated!");
-  };
-
-  const handleVehicleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    alert("Vehicle information updated!");
-  };
-
-  const handlePasswordSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (passwordInfo.newPassword !== passwordInfo.confirmPassword) {
-      alert("Passwords do not match!");
+  const loadProfile = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("Please log in to view your profile");
+      setLoading(false);
       return;
     }
-    alert("Password changed successfully!");
-    setPasswordInfo({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    try {
+      const data = await api.getProfile(token);
+      if (data.id) {
+        setProfile({ name: data.name || "", email: data.email || "" });
+      } else {
+        setError("Unable to load profile");
+      }
+    } catch (err) {
+      setError("Failed to load profile");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setProfile({ ...profile, [e.target.name]: e.target.value });
+    setSuccess("");
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile.name.trim() || !profile.email.trim()) {
+      setError("Please fill in all fields");
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+    setSuccess("");
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("Please log in to update your profile");
+      setSaving(false);
+      return;
+    }
+
+    try {
+      const res = await api.updateProfile(token, profile.name, profile.email);
+      if (res.success) {
+        setSuccess("Profile updated successfully!");
+      } else {
+        setError(res.error || "Failed to update profile");
+      }
+    } catch (err) {
+      setError("Error updating profile");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout role="customer">
+        <div className="p-8">
+          <p className="text-gray-600">Loading profile...</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout role="customer">
       <div className="p-8">
         <div className="mb-8">
           <h1 className="text-3xl text-primary mb-2">Profile Management</h1>
-          <p className="text-gray-600">Update your personal information and settings</p>
+          <p className="text-gray-600">Update your personal information</p>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-4 mb-8">
-          <button
-            onClick={() => setActiveTab("personal")}
-            className={`flex items-center gap-2 px-6 py-3 rounded-lg transition ${
-              activeTab === "personal"
-                ? "bg-primary text-white"
-                : "bg-white text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            <User size={20} />
-            Personal Info
-          </button>
-          <button
-            onClick={() => setActiveTab("vehicle")}
-            className={`flex items-center gap-2 px-6 py-3 rounded-lg transition ${
-              activeTab === "vehicle"
-                ? "bg-primary text-white"
-                : "bg-white text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            <Car size={20} />
-            Vehicle Details
-          </button>
-          <button
-            onClick={() => setActiveTab("password")}
-            className={`flex items-center gap-2 px-6 py-3 rounded-lg transition ${
-              activeTab === "password"
-                ? "bg-primary text-white"
-                : "bg-white text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            <Lock size={20} />
-            Change Password
-          </button>
+        <div className="max-w-2xl bg-white rounded-xl shadow-md p-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="flex gap-3 bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+                <AlertCircle size={20} className="flex-shrink-0" />
+                <p>{error}</p>
+              </div>
+            )}
+
+            {success && (
+              <div className="flex gap-3 bg-green-50 border border-green-200 rounded-lg p-4 text-green-700">
+                <Check size={20} className="flex-shrink-0" />
+                <p>{success}</p>
+              </div>
+            )}
+
+            <div>
+              <label htmlFor="profile-name" className="block text-sm font-medium text-gray-700 mb-2">
+                Full Name
+              </label>
+              <input
+                id="profile-name"
+                name="name"
+                type="text"
+                value={profile.name}
+                onChange={handleChange}
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-primary focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="profile-email" className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address
+              </label>
+              <input
+                id="profile-email"
+                name="email"
+                type="email"
+                value={profile.email}
+                onChange={handleChange}
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-primary focus:outline-none"
+              />
+            </div>
+
+            <div className="flex gap-4 pt-4">
+              <button
+                type="submit"
+                disabled={saving}
+                className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-lg hover:bg-blue-900 disabled:opacity-50 transition"
+              >
+                <Save size={18} />
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
+              <button
+                type="button"
+                onClick={loadProfile}
+                className="inline-flex items-center gap-2 border border-gray-300 px-6 py-3 rounded-lg hover:bg-gray-100 transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
         </div>
-
-        {/* Personal Info Tab */}
-        {activeTab === "personal" && (
-          <div className="bg-white rounded-xl shadow-md p-8 max-w-2xl">
-            <h2 className="text-2xl text-primary mb-6">Personal Information</h2>
-            <form onSubmit={handlePersonalSubmit} className="space-y-6">
-              <div>
-                <label htmlFor="fullName" className="block mb-2 text-gray-700">Full Name</label>
-                <input
-                  id="fullName"
-                  name="fullName"
-                  type="text"
-                  value={personalInfo.fullName}
-                  onChange={handlePersonalChange}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none"
-                />
-              </div>
-              <div>
-                <label htmlFor="email" className="block mb-2 text-gray-700">Email</label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={personalInfo.email}
-                  onChange={handlePersonalChange}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none"
-                />
-              </div>
-              <div>
-                <label htmlFor="contactNumber" className="block mb-2 text-gray-700">Contact Number</label>
-                <input
-                  id="contactNumber"
-                  name="contactNumber"
-                  type="tel"
-                  value={personalInfo.contactNumber}
-                  onChange={handlePersonalChange}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none"
-                />
-              </div>
-              <button
-                type="submit"
-                className="bg-accent text-white px-6 py-3 rounded-lg hover:bg-orange-600 transition"
-              >
-                Update Information
-              </button>
-            </form>
-          </div>
-        )}
-
-        {/* Vehicle Info Tab */}
-        {activeTab === "vehicle" && (
-          <div className="bg-white rounded-xl shadow-md p-8 max-w-2xl">
-            <h2 className="text-2xl text-primary mb-6">Vehicle Details</h2>
-            <form onSubmit={handleVehicleSubmit} className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="vehicleType" className="block mb-2 text-gray-700">Vehicle Type</label>
-                  <select
-                    id="vehicleType"
-                    name="vehicleType"
-                    value={vehicleInfo.vehicleType}
-                    onChange={handleVehicleChange}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none bg-white"
-                  >
-                    <option value="Sedan">Sedan</option>
-                    <option value="SUV">SUV</option>
-                    <option value="Truck">Truck</option>
-                    <option value="Van">Van</option>
-                    <option value="Motorcycle">Motorcycle</option>
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="plateNumber" className="block mb-2 text-gray-700">Plate Number</label>
-                  <input
-                    id="plateNumber"
-                    name="plateNumber"
-                    type="text"
-                    value={vehicleInfo.plateNumber}
-                    onChange={handleVehicleChange}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none"
-                  />
-                </div>
-              </div>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="model" className="block mb-2 text-gray-700">Model</label>
-                  <input
-                    id="model"
-                    name="model"
-                    type="text"
-                    value={vehicleInfo.model}
-                    onChange={handleVehicleChange}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="year" className="block mb-2 text-gray-700">Year</label>
-                  <input
-                    id="year"
-                    name="year"
-                    type="text"
-                    value={vehicleInfo.year}
-                    onChange={handleVehicleChange}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none"
-                  />
-                </div>
-              </div>
-              <button
-                type="submit"
-                className="bg-accent text-white px-6 py-3 rounded-lg hover:bg-orange-600 transition"
-              >
-                Update Vehicle Details
-              </button>
-            </form>
-          </div>
-        )}
-
-        {/* Password Tab */}
-        {activeTab === "password" && (
-          <div className="bg-white rounded-xl shadow-md p-8 max-w-2xl">
-            <h2 className="text-2xl text-primary mb-6">Change Password</h2>
-            <form onSubmit={handlePasswordSubmit} className="space-y-6">
-              <div>
-                <label htmlFor="currentPassword" className="block mb-2 text-gray-700">Current Password</label>
-                <input
-                  id="currentPassword"
-                  name="currentPassword"
-                  type="password"
-                  value={passwordInfo.currentPassword}
-                  onChange={handlePasswordChange}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none"
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="newPassword" className="block mb-2 text-gray-700">New Password</label>
-                <input
-                  id="newPassword"
-                  name="newPassword"
-                  type="password"
-                  value={passwordInfo.newPassword}
-                  onChange={handlePasswordChange}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none"
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="confirmPassword" className="block mb-2 text-gray-700">Confirm New Password</label>
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  value={passwordInfo.confirmPassword}
-                  onChange={handlePasswordChange}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:outline-none"
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                className="bg-accent text-white px-6 py-3 rounded-lg hover:bg-orange-600 transition"
-              >
-                Change Password
-              </button>
-            </form>
-          </div>
-        )}
       </div>
     </DashboardLayout>
   );
 }
+

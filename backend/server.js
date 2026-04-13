@@ -174,6 +174,79 @@ app.get('/api/users', authenticate, (req, res) => {
   });
 });
 
+app.post('/api/users', authenticate, (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+  const { name, email, password, role } = req.body;
+  bcrypt.hash(password, 10, (err, hashedPassword) => {
+    if (err) return res.status(400).json({ error: err.message });
+    db.run('INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)', [name, email, hashedPassword, role], function(err) {
+      if (err) return res.status(400).json({ error: err.message });
+      res.json({ id: this.lastID });
+    });
+  });
+});
+
+app.put('/api/users/:id', authenticate, (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+  const { id } = req.params;
+  const { name, email, role } = req.body;
+  db.run('UPDATE users SET name = ?, email = ?, role = ? WHERE id = ?', [name, email, role, id], function(err) {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json({ id });
+  });
+});
+
+app.delete('/api/users/:id', authenticate, (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+  const { id } = req.params;
+  db.run('DELETE FROM users WHERE id = ?', [id], function(err) {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json({ success: true });
+  });
+});
+
+// Profile
+app.get('/api/profile', authenticate, (req, res) => {
+  db.get('SELECT id, name, email, role FROM users WHERE id = ?', [req.user.id], (err, row) => {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json(row);
+  });
+});
+
+app.put('/api/profile', authenticate, (req, res) => {
+  const { name, email } = req.body;
+  db.run('UPDATE users SET name = ?, email = ? WHERE id = ?', [name, email, req.user.id], function(err) {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json({ success: true });
+  });
+});
+
+// Appointment management
+app.put('/api/appointments/:id', authenticate, (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  db.run('UPDATE appointments SET status = ? WHERE id = ?', [status, id], function(err) {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json({ success: true });
+  });
+});
+
+app.delete('/api/appointments/:id', authenticate, (req, res) => {
+  const { id } = req.params;
+  db.run('DELETE FROM appointments WHERE id = ?', [id], function(err) {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json({ success: true });
+  });
+});
+
+// Staff members
+app.get('/api/staff', (req, res) => {
+  db.all('SELECT id, name, email FROM users WHERE role = ?', ['staff'], (err, rows) => {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
