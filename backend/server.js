@@ -36,7 +36,7 @@ db.serialize(() => {
     duration INTEGER,
     price REAL,
     category TEXT
-  `);
+  )`);
   db.run(`ALTER TABLE services ADD COLUMN category TEXT`, [], (err) => {
     // Ignore duplicate column if it already exists
   });
